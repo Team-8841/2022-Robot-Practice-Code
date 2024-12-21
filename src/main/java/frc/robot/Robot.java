@@ -6,6 +6,7 @@ package frc.robot;
 
 import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj.DigitalInput;
+import edu.wpi.first.wpilibj.Servo;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.drive.DifferentialDrive;
 import com.revrobotics.CANSparkMax;
@@ -15,6 +16,7 @@ import com.ctre.phoenix.motorcontrol.can.VictorSPX;
 import com.ctre.phoenix.platform.DeviceType;
 import com.ctre.phoenix.platform.PlatformJNI;
 import com.ctre.phoenix.WPI_CallbackHelper;
+import frc.robot.Constants.ShooterConstants;
 
 
 
@@ -58,6 +60,11 @@ private DigitalInput turretCCW;
 private DigitalInput index;
 private DigitalInput intake;
 
+private Servo m_hoodServo1;
+private Servo m_hoodServo2;
+
+boolean sensorStateIntake;
+boolean sensorStateIndex;
 
 
 //joystick
@@ -83,7 +90,10 @@ turretMotor = new VictorSPX(1);
      turretCW = new DigitalInput(6);
      turretCCW = new DigitalInput(7);
      index = new DigitalInput(1);
-     intake = new DigitalInput(0); //need channel number______----------
+     intake = new DigitalInput(0); 
+
+    m_hoodServo1 = new Servo(ShooterConstants.kHoodServo1Port); //Hood Servo
+    m_hoodServo2 = new Servo(ShooterConstants.kHoodServo2Port);
   }
 
 
@@ -100,8 +110,10 @@ turretMotor = new VictorSPX(1);
     double rotateSpeed = stick.getLeftY();
     boolean sensorStateCW = turretCW.get();  //declares a boolean for the turret clockwise limit sensor
     boolean sensorStateCCW = turretCCW.get(); //declares a boolean for the turret counterclockwise limit sensor
-    boolean sensorStateIndex = index.get();
-    boolean sensorStateIntake = intake.get();
+    //boolean sensorStateIndex = index.get();
+    sensorStateIndex = index.get();
+    //boolean sensorStateIntake = intake.get();
+    sensorStateIntake = intake.get();
 
 
     // Arcade drive
@@ -110,27 +122,7 @@ turretMotor = new VictorSPX(1);
 
      
 
-//leftbump button runs the intake in
-if(stick.getLeftBumper()){
-  intakeMotor.set(ControlMode.PercentOutput, 0.6);
-  qMotor.set(ControlMode.PercentOutput, -0.6);
-  if(sensorStateIndex){
-    fireMotor.set(ControlMode.PercentOutput, 0.6);
-    if(sensorStateIntake){
-      intakeMotor.set(ControlMode.PercentOutput, 0.6);
-      qMotor.set(ControlMode.PercentOutput,-0.6);
-    }
-  }else{
-    fireMotor.set(ControlMode.PercentOutput, 0.0);
-  }
-}else if(stick.getRightBumper()){
-  qMotor.set(ControlMode.PercentOutput, 0);
-  fireMotor.set(ControlMode.PercentOutput, 0);
-}else{
-  qMotor.set(ControlMode.PercentOutput, 0);
-  intakeMotor.set(ControlMode.PercentOutput, 0);
-  fireMotor.set(ControlMode.PercentOutput, 0);
-}
+
 
 
 
@@ -166,6 +158,17 @@ turretMotor.set(ControlMode.PercentOutput, -.2);
 else {
 turretMotor.set(ControlMode.PercentOutput, 0);
 }
+
+if(stick.getPOV() == 0){ 
+  m_hoodServo1.set(.55);
+  m_hoodServo2.set(.55); //UP
+  }
+
+  if(stick.getPOV() == 180){ 
+  m_hoodServo1.set(.35);
+  m_hoodServo2.set(.35); //UP
+  }
+
   }
 
   @Override
@@ -179,7 +182,37 @@ turretMotor.set(ControlMode.PercentOutput, 0);
 
   @Override
   public void teleopPeriodic() {
+    int x = 0; 
+    if (x % 100 == 0 )
+    {
+      System.out.println("Sensor Reading Index: " + sensorStateIntake);
+      //System.out.println(sensorStateIntake);
+      System.out.println("Sensor State Index: " + sensorStateIndex);
+      //System.out.println(sensorStateIndex)
+    }
+    x++;
 
+      //leftbump button runs the intake in
+  if(stick.getLeftBumper()){
+    intakeMotor.set(ControlMode.PercentOutput, 0.6);
+    qMotor.set(ControlMode.PercentOutput, -0.6);
+    fireMotor.set(ControlMode.PercentOutput, 0.6);
+    if(!sensorStateIndex){
+      fireMotor.set(ControlMode.PercentOutput, 0.0);
+      if(!sensorStateIntake){
+        intakeMotor.set(ControlMode.PercentOutput, 0);
+        qMotor.set(ControlMode.PercentOutput,0);
+      }
+    }
+  }  
+  if(stick.getRightBumper() && !sensorStateIndex){
+    qMotor.set(ControlMode.PercentOutput, -0.6);
+    fireMotor.set(ControlMode.PercentOutput, 0.6);
+  }else if( !stick.getLeftBumper()){
+    qMotor.set(ControlMode.PercentOutput, 0);
+    intakeMotor.set(ControlMode.PercentOutput, 0);
+    fireMotor.set(ControlMode.PercentOutput, 0);
+  }
 
 
    // drivetrain.arcadeDrive(stick.getY(), stick.getZ());
